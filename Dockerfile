@@ -23,6 +23,7 @@ RUN pnpm fetch
 
 # Copy source and build
 COPY . .
+RUN sed -i "s/config\.mode !== 'test'/config.command !== 'build'/" vite.config.ts
 # install with dev deps (needed to build)
 RUN pnpm install --offline --frozen-lockfile
 
