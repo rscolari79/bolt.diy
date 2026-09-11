@@ -1,4 +1,5 @@
 import type { IProviderSetting } from '~/types/model';
+import type { ServerEnv } from '~/types/env';
 import { BaseProvider } from './base-provider';
 import type { ModelInfo, ProviderInfo } from './types';
 import * as providers from './registry';
@@ -9,14 +10,14 @@ export class LLMManager {
   private static _instance: LLMManager;
   private _providers: Map<string, BaseProvider> = new Map();
   private _modelList: ModelInfo[] = [];
-  private _env: Record<string, string> = {};
+  private _env: ServerEnv = {};
 
-  private constructor(_env: Record<string, string>) {
+  private constructor(_env: ServerEnv) {
     this._registerProvidersFromDirectory();
     this._env = _env;
   }
 
-  static getInstance(env: Record<string, string> = {}): LLMManager {
+  static getInstance(env: ServerEnv = {}): LLMManager {
     if (!LLMManager._instance) {
       LLMManager._instance = new LLMManager(env);
     } else if (Object.keys(env).length > 0) {
@@ -80,7 +81,7 @@ export class LLMManager {
   async updateModelList(options: {
     apiKeys?: Record<string, string>;
     providerSettings?: Record<string, IProviderSetting>;
-    serverEnv?: Record<string, string>;
+    serverEnv?: ServerEnv;
   }): Promise<ModelInfo[]> {
     const { apiKeys, providerSettings, serverEnv } = options;
 
@@ -141,7 +142,7 @@ export class LLMManager {
     options: {
       apiKeys?: Record<string, string>;
       providerSettings?: Record<string, IProviderSetting>;
-      serverEnv?: Record<string, string>;
+      serverEnv?: ServerEnv;
     },
   ): Promise<ModelInfo[]> {
     const provider = this._providers.get(providerArg.name);

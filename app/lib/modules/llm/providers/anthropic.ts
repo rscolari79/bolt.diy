@@ -1,4 +1,5 @@
 import { BaseProvider } from '~/lib/modules/llm/base-provider';
+import type { ServerEnv } from '~/types/env';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import type { LanguageModelV1 } from 'ai';
 import type { IProviderSetting } from '~/types/model';
@@ -113,7 +114,7 @@ export default class AnthropicProvider extends BaseProvider {
 
   getModelInstance: (options: {
     model: string;
-    serverEnv: Env;
+    serverEnv: ServerEnv;
     apiKeys?: Record<string, string>;
     providerSettings?: Record<string, IProviderSetting>;
   }) => LanguageModelV1 = (options) => {

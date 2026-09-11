@@ -1,4 +1,5 @@
 import { generateText, type CoreTool, type GenerateTextResult, type Message } from 'ai';
+import type { ServerEnv } from '~/types/env';
 import type { IProviderSetting } from '~/types/model';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDER_LIST } from '~/utils/constants';
 import { extractCurrentContext, extractPropertiesFromMessage, simplifyBoltActions } from './utils';
@@ -9,7 +10,7 @@ const logger = createScopedLogger('create-summary');
 
 export async function createSummary(props: {
   messages: Message[];
-  env?: Env;
+  env?: ServerEnv;
   apiKeys?: Record<string, string>;
   providerSettings?: Record<string, IProviderSetting>;
   promptId?: string;

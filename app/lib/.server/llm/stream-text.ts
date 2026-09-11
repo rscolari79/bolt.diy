@@ -1,4 +1,5 @@
 import { convertToCoreMessages, streamText as _streamText, type Message } from 'ai';
+import type { ServerEnv } from '~/types/env';
 import { MAX_TOKENS, PROVIDER_COMPLETION_LIMITS, isReasoningModel, type FileMap } from './constants';
 import { getSystemPrompt } from '~/lib/common/prompts/prompts';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, MODIFICATIONS_TAG_NAME, PROVIDER_LIST, WORK_DIR } from '~/utils/constants';
@@ -53,7 +54,7 @@ function sanitizeText(text: string): string {
 
 export async function streamText(props: {
   messages: Omit<Message, 'id'>[];
-  env?: Env;
+  env?: ServerEnv;
   options?: StreamingOptions;
   apiKeys?: Record<string, string>;
   files?: FileMap;

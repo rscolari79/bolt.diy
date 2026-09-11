@@ -1,4 +1,6 @@
 import { type ActionFunctionArgs } from '@remix-run/cloudflare';
+import type { ServerEnv } from '~/types/env';
+import { getServerEnv } from '~/lib/.server/env';
 import { streamText } from '~/lib/.server/llm/stream-text';
 import type { IProviderSetting, ProviderInfo } from '~/types/model';
 import { generateText } from 'ai';
@@ -16,7 +18,7 @@ export async function action(args: ActionFunctionArgs) {
 async function getModelList(options: {
   apiKeys?: Record<string, string>;
   providerSettings?: Record<string, IProviderSetting>;
-  serverEnv?: Record<string, string>;
+  serverEnv?: ServerEnv;
 }) {
   const llmManager = LLMManager.getInstance(import.meta.env);
   return llmManager.updateModelList(options);
@@ -106,7 +108,7 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
             content: `${message}`,
           },
         ],
-        env: context.cloudflare?.env as any,
+        env: getServerEnv(context),
         apiKeys,
         providerSettings,
       });
@@ -151,7 +153,7 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
     }
   } else {
     try {
-      const models = await getModelList({ apiKeys, providerSettings, serverEnv: context.cloudflare?.env as any });
+      const models = await getModelList({ apiKeys, providerSettings, serverEnv: getServerEnv(context) });
       const modelDetails = models.find((m: ModelInfo) => m.name === model);
 
       if (!modelDetails) {
@@ -196,7 +198,7 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
         ],
         model: providerInfo.getModelInstance({
           model: modelDetails.name,
-          serverEnv: context.cloudflare?.env as any,
+          serverEnv: getServerEnv(context),
           apiKeys,
           providerSettings,
         }),
