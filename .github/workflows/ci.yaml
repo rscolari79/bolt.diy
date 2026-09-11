@@ -59,10 +59,10 @@ jobs:
           path: coverage/
           retention-days: 7
 
-  docker-validation:
-    name: Docker Build Validation
+  docker-smoke-test:
+    name: Docker Build und Smoke-Test
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
 
     steps:
       - name: Checkout
@@ -71,20 +71,103 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Validate Docker production build
+      - name: Image bauen
         run: |
-          echo "🐳 Testing Docker production target..."
-          docker build --target bolt-ai-production . --no-cache --progress=plain
-          echo "✅ Production target builds successfully"
+          docker build \
+            --target runtime \
+            --build-arg BOLT_APP_VERSION="${GITHUB_SHA::7}" \
+            --build-arg BOLT_APP_BRANCH="${GITHUB_REF_NAME}" \
+            -t bolt-ai:ci \
+            --progress=plain \
+            .
 
-      - name: Validate Docker development build
+      - name: Container starten
         run: |
-          echo "🐳 Testing Docker development target..."
-          docker build --target development . --no-cache --progress=plain
-          echo "✅ Development target builds successfully"
+          docker run -d --name bolt-ci \
+            -p 5173:5173 \
+            -e BOLT_AUTH_USER=ci \
+            -e BOLT_AUTH_PASSWORD=ci-secret \
+            -e GITHUB_ACCESS_TOKEN=smoke-test-token \
+            bolt-ai:ci
 
-      - name: Validate docker-compose configuration
+      - name: Auf Healthcheck warten
         run: |
-          echo "🐳 Validating docker-compose configuration..."
-          docker compose config --quiet
-          echo "✅ docker-compose configuration is valid"
+          for i in $(seq 1 60); do
+            status=$(docker inspect --format='{{.State.Health.Status}}' bolt-ci 2>/dev/null || echo starting)
+            echo "Versuch $i: $status"
+            if [ "$status" = "healthy" ]; then exit 0; fi
+            if [ "$status" = "unhealthy" ]; then
+              echo "::error::Container ist unhealthy"
+              docker logs bolt-ci
+              exit 1
+            fi
+            sleep 2
+          done
+          echo "::error::Healthcheck wurde nicht healthy"
+          docker logs bolt-ci
+          exit 1
+
+      - name: /api/health ist ohne Credentials erreichbar
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5173/api/health)
+          echo "HTTP $code"
+          [ "$code" = "200" ] || { docker logs bolt-ci; exit 1; }
+
+      - name: / ist ohne Credentials gesperrt
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5173/)
+          echo "HTTP $code"
+          [ "$code" = "401" ] || { docker logs bolt-ci; exit 1; }
+
+      - name: / liefert mit Credentials SSR samt COOP und COEP
+        run: |
+          headers=$(curl -s -D - -o /tmp/index.html -u ci:ci-secret http://127.0.0.1:5173/)
+          echo "$headers"
+          echo "$headers" | grep -qi 'HTTP/1.1 200' || { docker logs bolt-ci; exit 1; }
+          echo "$headers" | grep -qi 'cross-origin-embedder-policy: require-corp' || { echo "::error::COEP fehlt"; exit 1; }
+          echo "$headers" | grep -qi 'cross-origin-opener-policy: same-origin' || { echo "::error::COOP fehlt"; exit 1; }
+          size=$(wc -c < /tmp/index.html)
+          echo "HTML-Groesse: $size"
+          [ "$size" -gt 2000 ] || { echo "::error::HTML zu klein, SSR vermutlich fehlgeschlagen"; exit 1; }
+
+      - name: Laufzeit-Umgebung erreicht die App
+        run: |
+          # Belegt, dass Variablen aus der Container-Umgebung ankommen und nicht
+          # nur der Buildzeit-Schnappschuss von process.env sichtbar ist.
+          body=$(curl -s -u ci:ci-secret http://127.0.0.1:5173/api/system/diagnostics)
+          echo "$body" | head -c 300
+          echo "$body" | grep -q '"hasGithubToken":true' || {
+            echo "::error::GITHUB_ACCESS_TOKEN aus der Container-Umgebung kam nicht an"
+            docker logs bolt-ci
+            exit 1
+          }
+          version=$(curl -s -u ci:ci-secret http://127.0.0.1:5173/api/git-info)
+          echo "$version"
+          echo "$version" | grep -q "${GITHUB_SHA::7}" || {
+            echo "::error::Versionsstempel fehlt"
+            exit 1
+          }
+
+      - name: Logs auf Fehler pruefen
+        run: |
+          docker logs bolt-ci 2>&1 | tee /tmp/bolt.log
+          if grep -Ei 'SyntaxError|Cannot find module|UnhandledPromiseRejection|ERR_MODULE_NOT_FOUND' /tmp/bolt.log; then
+            echo "::error::Fehler im Containerlog"
+            exit 1
+          fi
+
+      - name: Graceful Shutdown pruefen
+        run: |
+          docker stop -t 15 bolt-ci
+          docker logs bolt-ci 2>&1 | grep -q 'SIGTERM received' || {
+            echo "::error::SIGTERM wurde nicht behandelt"
+            docker logs bolt-ci
+            exit 1
+          }
+
+      - name: docker-compose validieren
+        run: docker compose config --quiet
+
+      - name: Aufraeumen
+        if: always()
+        run: docker rm -f bolt-ci || true
