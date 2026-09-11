@@ -15,7 +15,8 @@
 - **Keine Dependency-Majors in dieser Phase.** React bleibt 18.3, Remix bleibt 2.16.8, Vite bleibt 5.4, AI SDK bleibt 4.3. Einzige Neuzugänge: `express@4.22.2` und `@remix-run/express@2.16.8` (exakt gepinnt, damit die `@remix-run/*`-Familie konsistent bei 2.16.8 bleibt).
 - **Remix-Version exakt pinnen:** `@remix-run/express` MUSS als `"2.16.8"` ohne Caret eingetragen werden. Ein `^2.15.2` würde auf 2.17.5 auflösen und die Familie spalten.
 - **`typecheck` ist die primäre Absicherung.** Es existieren nur 3 Testdateien für ~70.000 Zeilen Code. Jede Task endet mit grünem `pnpm typecheck`.
-- **Baseline-Fehler:** `pnpm typecheck` meldet im Ausgangszustand genau einen Fehler: `functions/[[path]].ts(5,37): error TS2307: Cannot find module '../build/server'`. Dieser verschwindet in Task 3 mit dem Löschen der Datei. Danach MUSS `typecheck` fehlerfrei sein.
+- **Baseline-Fehler — mit Vorsicht lesen:** `pnpm typecheck` meldet `functions/[[path]].ts(5,37): error TS2307: Cannot find module '../build/server'` **nur solange kein Build existiert**. Die Datei importiert `../build/server`; nach einem `pnpm run build` ist der Fehler weg. Auf einem frischen Clone also ein Fehler, nach einem Build null. Verlasse dich deshalb nicht auf die Fehlerzahl als Fortschrittsmass, sondern darauf, dass ab Task 3 unabhängig vom Build-Zustand **null** Fehler auftreten.
+- **Der Pre-Commit-Hook prüft mit.** `.husky/pre-commit` fährt bei jedem Commit `pnpm typecheck` und `pnpm lint`. Jeder Task-Commit ist damit automatisch abgesichert — aber ein Commit schlägt auch fehl, wenn Lint meckert. Bei Lint-Fehlern `pnpm run lint:fix` laufen lassen, nicht den Hook umgehen.
 - **COOP/COEP nicht anfassen.** `app/entry.server.tsx` setzt `Cross-Origin-Embedder-Policy: require-corp` und `Cross-Origin-Opener-Policy: same-origin`. WebContainer benötigt beide. Verifiziert: sie überleben den Express-Pfad.
 - **Port und Host:** Der Server liest `process.env.PORT ?? 5173` und `process.env.HOST ?? '0.0.0.0'`.
 - **Kein `compression`-Middleware.** Der Chat streamt per SSE; Kompression davor ist eine bekannte Fehlerquelle und bringt für gestreamte Antworten nichts.
@@ -84,9 +85,13 @@ Expected: `feat/node-runtime-coolify`
 - [ ] **Step 3: Baseline festhalten**
 
 ```bash
+cd /Users/ros/Documents/Claude/Bolt
+ls build/server/index.js 2>/dev/null && echo "Build vorhanden" || echo "kein Build"
 pnpm typecheck 2>&1 | tail -3
 ```
-Expected: genau ein Fehler, `functions/[[path]].ts(5,37): error TS2307`. Dieser Wert ist der Vergleichspunkt für alle folgenden Tasks — nach Task 3 muss er verschwunden sein.
+Expected: **ohne** Build genau ein Fehler `functions/[[path]].ts(5,37): error TS2307`; **mit** Build keine Ausgabe. Beides ist der korrekte Ausgangszustand — der Fehler entsteht nur daraus, dass die zu löschende Cloudflare-Datei `../build/server` importiert.
+
+Ab Task 3 muss `typecheck` in **beiden** Fällen fehlerfrei sein. Das ist das eigentliche Kriterium.
 
 ---
 
