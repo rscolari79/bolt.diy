@@ -3,44 +3,63 @@ import type { ServerEnv } from '~/types/env';
 export type { ServerEnv };
 
 /**
- * Shape of the Remix load context when the app runs on Cloudflare.
- * Under the Node runtime this is always absent.
+ * The Remix load context, as far as environment access is concerned.
  *
- * `env` is deliberately `unknown`: Remix types it as the generated `Env`
- * interface, and an interface without an index signature is not assignable to
- * `Record<string, unknown>`. Keeping this boundary loose means the function
- * accepts whatever the host hands it, and the runtime check below decides.
+ * `env` is injected by `server/index.mjs` through `getLoadContext`. That file
+ * lives OUTSIDE the Vite bundle, which matters: `vite-plugin-node-polyfills`
+ * replaces the `process` global in the bundle (the server build imports
+ * `vite-plugin-node-polyfills/shims/process`), so `process.env` inside
+ * application code is a static build-time snapshot, not the running process's
+ * environment. Reading it at runtime silently yields stale or empty values —
+ * which is why the upstream project needed Cloudflare bindings to get secrets
+ * in at all.
+ *
+ * `cloudflare.env` is kept so the code stays portable to a Workers deployment
+ * without a second abstraction. Under Node it is always absent.
  */
-export type MaybeCloudflareContext = {
+export type ServerEnvContext = {
+  env?: unknown;
   cloudflare?: {
     env?: unknown;
   };
 };
 
-/**
- * Single source of truth for server-side environment variables.
- *
- * Under Node every variable lives in `process.env`. The optional
- * `cloudflare.env` lookup keeps the code portable to a Workers deployment
- * without introducing a second abstraction; bindings win over `process.env`
- * because they are the more specific source.
- *
- * Never mutates `process.env`.
- */
-export function getServerEnv(context?: MaybeCloudflareContext): ServerEnv {
-  const bindings = context?.cloudflare?.env;
-
-  if (!bindings || typeof bindings !== 'object') {
-    return process.env as ServerEnv;
+function toRecord(value: unknown): ServerEnv | undefined {
+  if (!value || typeof value !== 'object') {
+    return undefined;
   }
 
-  const merged: ServerEnv = { ...(process.env as ServerEnv) };
+  const result: ServerEnv = {};
 
-  for (const [key, value] of Object.entries(bindings as Record<string, unknown>)) {
-    if (value !== undefined && value !== null) {
-      merged[key] = String(value);
+  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+    if (entry !== undefined && entry !== null) {
+      result[key] = String(entry);
     }
   }
 
-  return merged;
+  return result;
+}
+
+/**
+ * Single source of truth for server-side environment variables.
+ *
+ * Precedence, lowest to highest: the bundle's `process.env` snapshot, the
+ * environment injected by the server entry, then Cloudflare bindings. Later
+ * sources are the more specific ones.
+ *
+ * Never mutates `process.env`.
+ */
+export function getServerEnv(context?: ServerEnvContext): ServerEnv {
+  const injected = toRecord(context?.env);
+  const bindings = toRecord(context?.cloudflare?.env);
+
+  if (!injected && !bindings) {
+    return process.env as ServerEnv;
+  }
+
+  return {
+    ...(process.env as ServerEnv),
+    ...injected,
+    ...bindings,
+  };
 }

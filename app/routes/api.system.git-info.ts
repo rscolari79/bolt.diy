@@ -55,7 +55,7 @@ declare const __GIT_REPO_NAME: string;
  * declare const __GIT_REPO_URL: string;
  */
 
-export const loader: LoaderFunction = async ({ request }: LoaderFunctionArgs) => {
+export const loader: LoaderFunction = async ({ request, context }: LoaderFunctionArgs) => {
   console.log('Git info API called with URL:', request.url);
 
   // Handle CORS preflight requests
@@ -76,7 +76,7 @@ export const loader: LoaderFunction = async ({ request }: LoaderFunctionArgs) =>
 
   if (action === 'getUser' || action === 'getRepos' || action === 'getOrgs' || action === 'getActivity') {
     // Use server-side token instead of client-side token
-    const serverGithubToken = getServerEnv().GITHUB_ACCESS_TOKEN;
+    const serverGithubToken = getServerEnv(context).GITHUB_ACCESS_TOKEN;
     const cookieToken = request.headers
       .get('Cookie')
       ?.split(';')

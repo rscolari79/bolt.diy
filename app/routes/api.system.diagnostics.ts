@@ -5,9 +5,9 @@ import { getServerEnv } from '~/lib/.server/env';
  * Diagnostic API for troubleshooting connection issues
  */
 
-export const loader: LoaderFunction = async ({ request }: LoaderFunctionArgs) => {
+export const loader: LoaderFunction = async ({ request, context }: LoaderFunctionArgs) => {
   // Get environment variables
-  const env = getServerEnv();
+  const env = getServerEnv(context);
   const envVars = {
     hasGithubToken: Boolean(env.GITHUB_ACCESS_TOKEN),
     hasNetlifyToken: Boolean(env.NETLIFY_TOKEN),

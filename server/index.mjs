@@ -33,7 +33,20 @@ app.use(
 app.use('/assets', express.static(path.join(clientDir, 'assets'), { immutable: true, maxAge: '1y' }));
 app.use(express.static(clientDir, { maxAge: '1h' }));
 
-app.all('*', createRequestHandler({ build, mode: process.env.NODE_ENV ?? 'production' }));
+/*
+ * The real environment has to be handed to the app explicitly. Inside the Vite
+ * bundle `process.env` is a static build-time snapshot, because
+ * vite-plugin-node-polyfills replaces the process global there. This file is
+ * outside the bundle, so here process.env is the running process's own.
+ */
+app.all(
+  '*',
+  createRequestHandler({
+    build,
+    mode: process.env.NODE_ENV ?? 'production',
+    getLoadContext: () => ({ env: process.env }),
+  }),
+);
 
 const server = app.listen(PORT, HOST, () => {
   console.log(`bolt.diy listening on http://${HOST}:${PORT}`);

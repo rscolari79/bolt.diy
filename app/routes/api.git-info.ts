@@ -1,18 +1,21 @@
+import type { LoaderFunctionArgs } from '@remix-run/node';
 import { execSync } from 'child_process';
 import { existsSync } from 'fs';
+import { getServerEnv } from '~/lib/.server/env';
 
-export async function loader() {
+export async function loader({ context }: LoaderFunctionArgs) {
   try {
     /*
      * In a container there is no .git directory (it is excluded via
      * .dockerignore), so shelling out to git can never succeed. The Dockerfile
      * stamps these values at build time instead.
      */
-    const stampedCommit = process.env.BOLT_APP_VERSION;
+    const env = getServerEnv(context);
+    const stampedCommit = env.BOLT_APP_VERSION;
 
     if (stampedCommit) {
       return Response.json({
-        branch: process.env.BOLT_APP_BRANCH || 'unknown',
+        branch: env.BOLT_APP_BRANCH || 'unknown',
         commit: stampedCommit,
         isDirty: false,
       });
