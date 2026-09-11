@@ -1640,7 +1640,8 @@ MSG
 
 - [ ] `pnpm typecheck` ohne Ausgabe (Exit 0) — der Baseline-Fehler ist verschwunden
 - [ ] `pnpm lint` grün
-- [ ] `pnpm test` grün, 23 Tests
+- [ ] `pnpm test` grün, 78 Tests (die Schätzung von 23 im Plan war zu niedrig: die drei
+      bestehenden Spec-Dateien enthalten 52 Tests, nicht 3)
 - [ ] `pnpm run build` erzeugt `build/client` und `build/server/index.js`
 - [ ] `pnpm start` serviert `/api/health` mit 200 und `/` mit SSR-HTML samt COOP/COEP
 - [ ] Mit gesetzten `BOLT_AUTH_*`: `/` ohne Credentials 401, mit Credentials 200, `/api/health` immer 200
@@ -1648,3 +1649,41 @@ MSG
 - [ ] Kein Vorkommen von `wrangler`, `bindings.sh`, `worker-configuration`, `dockerstart` oder `@remix-run/cloudflare` in `app/`, `.github/`, `package.json`, `Dockerfile`
 - [ ] Neun Commits auf dem Branch `feat/node-runtime-coolify`
 - [ ] **Nicht gepusht** — der GitHub-Zugang wird erst danach eingerichtet
+
+---
+
+## Ausführungsnotizen
+
+Was bei der Umsetzung anders war als geplant — festgehalten, weil Phase 2 auf
+denselben Fallstricken aufsetzt.
+
+1. **`process.env` trägt im Vite-Bundle nicht.** `vite-plugin-node-polyfills`
+   ersetzt mit `globals.process = true` das `process`-Global auch im
+   Server-Build; das Artefakt importiert `vite-plugin-node-polyfills/shims/process`
+   und enthält `process.env` als statischen Buildzeit-Schnappschuss. Der Plan
+   hatte angenommen, `process.env` sei zur Laufzeit lesbar — das war falsch.
+   Der Fix ist ein zusätzlicher Commit: `server/index.mjs` übergibt die echte
+   Umgebung per `getLoadContext` an die App, `getServerEnv(context)` liest sie
+   mit Vorrang. **Wer künftig direkt `process.env` in Anwendungscode schreibt,
+   baut sich lautlos einen Fehler ein.**
+2. **Der `json()`-Codemod war in Phase 1 erzwungen, nicht optional.**
+   `@remix-run/node` bringt undici als Fetch-Polyfill mit; ein Laufzeit-Import
+   aus einem Route-Modul zieht es in den Client-Bundle, der dann an
+   `util/types` scheitert. Alle 144 `json()`-Aufrufe mussten deshalb schon
+   hier auf `Response.json()` wechseln. Für Phase 2 entfällt dieser Schritt
+   damit ersatzlos.
+3. **Zwei Zählfehler im Plan.** Die `Env`-Typreferenzen waren 27, nicht 28:
+   `app/lib/common/prompts/prompts.ts:63` enthält `- env: Environment variables`
+   als Prompt-Text — ein Codemod auf `env: Env` hätte daraus
+   `env: ServerEnvironment variables` gemacht und einen Systemprompt
+   beschädigt. Und die `context.cloudflare.env`-Stellen waren 27, nicht 11: der
+   ursprüngliche Grep `context\.cloudflare` verfehlte die Mehrheit, die
+   `context?.cloudflare?.env` schreibt.
+4. **BSD-`sed` auf macOS kennt `\b` nicht.** Die Codemod-Befehle im Plan
+   hätten stillschweigend nichts getan. Ersetzt durch Node-Skripte, die jede
+   Ersetzung auf genau einen Treffer prüfen und sonst abbrechen — Shell-Einzeiler
+   mit `perl` sind an Delimiter- und Interpolationsproblemen zweimal
+   gescheitert.
+5. **Ergänzt, weil es sonst eine Lücke gewesen wäre:** `lint` und `lint:fix`
+   decken jetzt auch `server/` ab; der neue Server-Code wäre sonst weder von
+   ESLint noch von Prettier erfasst worden.

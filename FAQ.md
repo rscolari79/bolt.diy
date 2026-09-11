@@ -94,9 +94,6 @@ Local LLMs like Qwen-2.5-Coder are powerful for small applications but still exp
 
 If you are getting this, you are probably on Windows. The fix is generally to update the [Visual C++ Redistributable](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170)
 
-### **"Miniflare or Wrangler errors in Windows"**
-
-You will need to make sure you have the latest version of Visual Studio C++ installed (14.40.33816), more information here https://github.com/stackblitz-labs/bolt.diy/issues/19.
 
 </details>
 
