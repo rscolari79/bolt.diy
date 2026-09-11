@@ -61,12 +61,17 @@ ARG DEFAULT_NUM_CTX
 ENV DEFAULT_NUM_CTX=${DEFAULT_NUM_CTX}
 
 # API-Keys und BOLT_AUTH_* kommen zur Laufzeit aus der Umgebung, nie ins Image
-COPY --from=prod-deps /app/node_modules ./node_modules
-COPY --from=build     /app/build        ./build
-COPY                  server            ./server
-COPY                  package.json      ./package.json
+#
+# --chown direkt beim Kopieren statt "RUN chown -R /app" danach: Letzteres
+# erzeugt eine zusätzliche Layer, die node_modules vollständig dupliziert. Bei
+# den Produktions-Dependencies sind das mehrere hundert Megabyte plus pnpms
+# Symlink-Struktur — es verdoppelt die Imagegrösse und liess das
+# Coolify-Deployment in den Job-Timeout laufen.
+COPY --from=prod-deps --chown=node:node /app/node_modules ./node_modules
+COPY --from=build     --chown=node:node /app/build        ./build
+COPY                  --chown=node:node server            ./server
+COPY                  --chown=node:node package.json      ./package.json
 
-RUN chown -R node:node /app
 USER node
 
 EXPOSE 5173
