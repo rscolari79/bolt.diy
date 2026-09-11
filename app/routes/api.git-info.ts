@@ -3,6 +3,21 @@ import { existsSync } from 'fs';
 
 export async function loader() {
   try {
+    /*
+     * In a container there is no .git directory (it is excluded via
+     * .dockerignore), so shelling out to git can never succeed. The Dockerfile
+     * stamps these values at build time instead.
+     */
+    const stampedCommit = process.env.BOLT_APP_VERSION;
+
+    if (stampedCommit) {
+      return Response.json({
+        branch: process.env.BOLT_APP_BRANCH || 'unknown',
+        commit: stampedCommit,
+        isDirty: false,
+      });
+    }
+
     // Check if we're in a git repository
     if (!existsSync('.git')) {
       return Response.json({
