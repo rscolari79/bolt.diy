@@ -1,4 +1,4 @@
-import { json } from '@remix-run/cloudflare';
+import { getServerEnv } from '~/lib/.server/env';
 import { getApiKeysFromCookie } from '~/lib/api/cookies';
 import { withSecurity } from '~/lib/security';
 
@@ -11,7 +11,7 @@ async function vercelUserLoader({ request, context }: { request: Request; contex
     // Try to get Vercel token from various sources
     let vercelToken =
       apiKeys.VITE_VERCEL_ACCESS_TOKEN ||
-      context?.cloudflare?.env?.VITE_VERCEL_ACCESS_TOKEN ||
+      getServerEnv(context).VITE_VERCEL_ACCESS_TOKEN ||
       process.env.VITE_VERCEL_ACCESS_TOKEN;
 
     // Also check for token in request headers (for direct API calls)
@@ -24,7 +24,7 @@ async function vercelUserLoader({ request, context }: { request: Request; contex
     }
 
     if (!vercelToken) {
-      return json({ error: 'Vercel token not found' }, { status: 401 });
+      return Response.json({ error: 'Vercel token not found' }, { status: 401 });
     }
 
     // Make server-side request to Vercel API
@@ -37,7 +37,7 @@ async function vercelUserLoader({ request, context }: { request: Request; contex
 
     if (!response.ok) {
       if (response.status === 401) {
-        return json({ error: 'Invalid Vercel token' }, { status: 401 });
+        return Response.json({ error: 'Invalid Vercel token' }, { status: 401 });
       }
 
       throw new Error(`Vercel API error: ${response.status}`);
@@ -53,7 +53,7 @@ async function vercelUserLoader({ request, context }: { request: Request; contex
       };
     };
 
-    return json({
+    return Response.json({
       id: userData.user.id,
       name: userData.user.name,
       email: userData.user.email,
@@ -62,7 +62,7 @@ async function vercelUserLoader({ request, context }: { request: Request; contex
     });
   } catch (error) {
     console.error('Error fetching Vercel user:', error);
-    return json(
+    return Response.json(
       {
         error: 'Failed to fetch Vercel user information',
         details: error instanceof Error ? error.message : String(error),
@@ -89,7 +89,7 @@ async function vercelUserAction({ request, context }: { request: Request; contex
     // Try to get Vercel token from various sources
     let vercelToken =
       apiKeys.VITE_VERCEL_ACCESS_TOKEN ||
-      context?.cloudflare?.env?.VITE_VERCEL_ACCESS_TOKEN ||
+      getServerEnv(context).VITE_VERCEL_ACCESS_TOKEN ||
       process.env.VITE_VERCEL_ACCESS_TOKEN;
 
     // Also check for token in request headers (for direct API calls)
@@ -102,7 +102,7 @@ async function vercelUserAction({ request, context }: { request: Request; contex
     }
 
     if (!vercelToken) {
-      return json({ error: 'Vercel token not found' }, { status: 401 });
+      return Response.json({ error: 'Vercel token not found' }, { status: 401 });
     }
 
     if (action === 'get_projects') {
@@ -129,7 +129,7 @@ async function vercelUserAction({ request, context }: { request: Request; contex
         }>;
       };
 
-      return json({
+      return Response.json({
         projects: data.projects.map((project) => ({
           id: project.id,
           name: project.name,
@@ -142,10 +142,10 @@ async function vercelUserAction({ request, context }: { request: Request; contex
       });
     }
 
-    return json({ error: 'Invalid action' }, { status: 400 });
+    return Response.json({ error: 'Invalid action' }, { status: 400 });
   } catch (error) {
     console.error('Error in Vercel user action:', error);
-    return json(
+    return Response.json(
       {
         error: 'Failed to process Vercel request',
         details: error instanceof Error ? error.message : String(error),

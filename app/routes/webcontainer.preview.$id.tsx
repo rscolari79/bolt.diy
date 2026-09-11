@@ -1,4 +1,4 @@
-import { json, type LoaderFunctionArgs } from '@remix-run/cloudflare';
+import type { LoaderFunctionArgs } from '@remix-run/node';
 import { useLoaderData } from '@remix-run/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -11,7 +11,7 @@ export async function loader({ params }: LoaderFunctionArgs) {
     throw new Response('Preview ID is required', { status: 400 });
   }
 
-  return json({ previewId });
+  return Response.json({ previewId });
 }
 
 export default function WebContainerPreview() {

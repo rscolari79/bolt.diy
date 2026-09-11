@@ -1,4 +1,4 @@
-import { json } from '@remix-run/cloudflare';
+import { getServerEnv } from '~/lib/.server/env';
 import { getApiKeysFromCookie } from '~/lib/api/cookies';
 import { withSecurity } from '~/lib/security';
 
@@ -12,13 +12,13 @@ async function githubUserLoader({ request, context }: { request: Request; contex
     const githubToken =
       apiKeys.GITHUB_API_KEY ||
       apiKeys.VITE_GITHUB_ACCESS_TOKEN ||
-      context?.cloudflare?.env?.GITHUB_TOKEN ||
-      context?.cloudflare?.env?.VITE_GITHUB_ACCESS_TOKEN ||
+      getServerEnv(context).GITHUB_TOKEN ||
+      getServerEnv(context).VITE_GITHUB_ACCESS_TOKEN ||
       process.env.GITHUB_TOKEN ||
       process.env.VITE_GITHUB_ACCESS_TOKEN;
 
     if (!githubToken) {
-      return json({ error: 'GitHub token not found' }, { status: 401 });
+      return Response.json({ error: 'GitHub token not found' }, { status: 401 });
     }
 
     // Make server-side request to GitHub API
@@ -32,7 +32,7 @@ async function githubUserLoader({ request, context }: { request: Request; contex
 
     if (!response.ok) {
       if (response.status === 401) {
-        return json({ error: 'Invalid GitHub token' }, { status: 401 });
+        return Response.json({ error: 'Invalid GitHub token' }, { status: 401 });
       }
 
       throw new Error(`GitHub API error: ${response.status}`);
@@ -46,7 +46,7 @@ async function githubUserLoader({ request, context }: { request: Request; contex
       type: string;
     };
 
-    return json({
+    return Response.json({
       login: userData.login,
       name: userData.name,
       avatar_url: userData.avatar_url,
@@ -55,7 +55,7 @@ async function githubUserLoader({ request, context }: { request: Request; contex
     });
   } catch (error) {
     console.error('Error fetching GitHub user:', error);
-    return json(
+    return Response.json(
       {
         error: 'Failed to fetch GitHub user information',
         details: error instanceof Error ? error.message : String(error),
@@ -102,13 +102,13 @@ async function githubUserAction({ request, context }: { request: Request; contex
     const githubToken =
       apiKeys.GITHUB_API_KEY ||
       apiKeys.VITE_GITHUB_ACCESS_TOKEN ||
-      context?.cloudflare?.env?.GITHUB_TOKEN ||
-      context?.cloudflare?.env?.VITE_GITHUB_ACCESS_TOKEN ||
+      getServerEnv(context).GITHUB_TOKEN ||
+      getServerEnv(context).VITE_GITHUB_ACCESS_TOKEN ||
       process.env.GITHUB_TOKEN ||
       process.env.VITE_GITHUB_ACCESS_TOKEN;
 
     if (!githubToken) {
-      return json({ error: 'GitHub token not found' }, { status: 401 });
+      return Response.json({ error: 'GitHub token not found' }, { status: 401 });
     }
 
     if (action === 'get_repos') {
@@ -139,7 +139,7 @@ async function githubUserAction({ request, context }: { request: Request; contex
         topics: string[];
       }>;
 
-      return json({
+      return Response.json({
         repos: repos.map((repo) => ({
           id: repo.id,
           name: repo.name,
@@ -158,7 +158,7 @@ async function githubUserAction({ request, context }: { request: Request; contex
 
     if (action === 'get_branches') {
       if (!repoFullName) {
-        return json({ error: 'Repository name is required' }, { status: 400 });
+        return Response.json({ error: 'Repository name is required' }, { status: 400 });
       }
 
       // Fetch repository branches
@@ -183,7 +183,7 @@ async function githubUserAction({ request, context }: { request: Request; contex
         protected: boolean;
       }>;
 
-      return json({
+      return Response.json({
         branches: branches.map((branch) => ({
           name: branch.name,
           commit: {
@@ -197,14 +197,14 @@ async function githubUserAction({ request, context }: { request: Request; contex
 
     if (action === 'get_token') {
       // Return the GitHub token for git authentication
-      return json({
+      return Response.json({
         token: githubToken,
       });
     }
 
     if (action === 'search_repos') {
       if (!searchQuery) {
-        return json({ error: 'Search query is required' }, { status: 400 });
+        return Response.json({ error: 'Search query is required' }, { status: 400 });
       }
 
       // Search repositories using GitHub API
@@ -245,7 +245,7 @@ async function githubUserAction({ request, context }: { request: Request; contex
         }>;
       };
 
-      return json({
+      return Response.json({
         repos: searchData.items.map((repo) => ({
           id: repo.id,
           name: repo.name,
@@ -268,10 +268,10 @@ async function githubUserAction({ request, context }: { request: Request; contex
       });
     }
 
-    return json({ error: 'Invalid action' }, { status: 400 });
+    return Response.json({ error: 'Invalid action' }, { status: 400 });
   } catch (error) {
     console.error('Error in GitHub user action:', error);
-    return json(
+    return Response.json(
       {
         error: 'Failed to process GitHub request',
         details: error instanceof Error ? error.message : String(error),

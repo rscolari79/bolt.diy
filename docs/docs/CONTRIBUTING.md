@@ -132,13 +132,17 @@ pnpm test
 
 ## 🚀 Deployment
 
-### Deploy to Cloudflare Pages
+### Deploy as a Node server
+
+This fork runs in production as a plain Node process, not on Cloudflare Workers:
 
 ```bash
-pnpm run deploy
+pnpm run build
+pnpm run start   # node server/index.mjs
 ```
 
-Ensure you have required permissions and that Wrangler is configured.
+Set `PORT` to change the listen port and `BOLT_AUTH_USER` / `BOLT_AUTH_PASSWORD` to require HTTP
+Basic auth.
 
 ---
 
@@ -187,13 +191,13 @@ docker run -p 5173:5173 --env-file .env.local bolt-ai:development
 
 ```bash
 # Production build
-npm run dockerbuild:prod
+pnpm run dockerbuild
 ```
 
 **Option 2: Direct Docker Build Command**
 
 ```bash
-docker build . --target bolt-ai-production
+docker build . --target runtime
 ```
 
 **Option 3: Docker Compose Profile**

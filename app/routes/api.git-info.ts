@@ -1,12 +1,29 @@
-import { json } from '@remix-run/cloudflare';
+import type { LoaderFunctionArgs } from '@remix-run/node';
 import { execSync } from 'child_process';
 import { existsSync } from 'fs';
+import { getServerEnv } from '~/lib/.server/env';
 
-export async function loader() {
+export async function loader({ context }: LoaderFunctionArgs) {
   try {
+    /*
+     * In a container there is no .git directory (it is excluded via
+     * .dockerignore), so shelling out to git can never succeed. The Dockerfile
+     * stamps these values at build time instead.
+     */
+    const env = getServerEnv(context);
+    const stampedCommit = env.BOLT_APP_VERSION;
+
+    if (stampedCommit) {
+      return Response.json({
+        branch: env.BOLT_APP_BRANCH || 'unknown',
+        commit: stampedCommit,
+        isDirty: false,
+      });
+    }
+
     // Check if we're in a git repository
     if (!existsSync('.git')) {
-      return json({
+      return Response.json({
         branch: 'unknown',
         commit: 'unknown',
         isDirty: false,
@@ -47,7 +64,7 @@ export async function loader() {
       // Could not get commit info
     }
 
-    return json({
+    return Response.json({
       branch,
       commit,
       isDirty,
@@ -56,7 +73,7 @@ export async function loader() {
     });
   } catch (error) {
     console.error('Error fetching git info:', error);
-    return json(
+    return Response.json(
       {
         branch: 'error',
         commit: 'error',

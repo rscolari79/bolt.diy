@@ -1,4 +1,5 @@
 import type { LanguageModelV1 } from 'ai';
+import type { ServerEnv } from '~/types/env';
 import type { IProviderSetting } from '~/types/model';
 
 export interface ModelInfo {
@@ -19,11 +20,11 @@ export interface ProviderInfo {
   getDynamicModels?: (
     apiKeys?: Record<string, string>,
     settings?: IProviderSetting,
-    serverEnv?: Record<string, string>,
+    serverEnv?: ServerEnv,
   ) => Promise<ModelInfo[]>;
   getModelInstance: (options: {
     model: string;
-    serverEnv: Env;
+    serverEnv: ServerEnv;
     apiKeys?: Record<string, string>;
     providerSettings?: Record<string, IProviderSetting>;
   }) => LanguageModelV1;

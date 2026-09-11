@@ -1,4 +1,4 @@
-import { json } from '@remix-run/cloudflare';
+import { getServerEnv } from '~/lib/.server/env';
 import JSZip from 'jszip';
 
 // Function to detect if we're running in Cloudflare
@@ -6,9 +6,9 @@ function isCloudflareEnvironment(context: any): boolean {
   // Check if we're in production AND have Cloudflare Pages specific env vars
   const isProduction = process.env.NODE_ENV === 'production';
   const hasCfPagesVars = !!(
-    context?.cloudflare?.env?.CF_PAGES ||
-    context?.cloudflare?.env?.CF_PAGES_URL ||
-    context?.cloudflare?.env?.CF_PAGES_COMMIT_SHA
+    getServerEnv(context).CF_PAGES ||
+    getServerEnv(context).CF_PAGES_URL ||
+    getServerEnv(context).CF_PAGES_COMMIT_SHA
   );
 
   return isProduction && hasCfPagesVars;
@@ -206,13 +206,13 @@ export async function loader({ request, context }: { request: Request; context: 
   const repo = url.searchParams.get('repo');
 
   if (!repo) {
-    return json({ error: 'Repository name is required' }, { status: 400 });
+    return Response.json({ error: 'Repository name is required' }, { status: 400 });
   }
 
   try {
     // Access environment variables from Cloudflare context or process.env
     const githubToken =
-      context?.cloudflare?.env?.GITHUB_TOKEN || process.env.GITHUB_TOKEN || process.env.VITE_GITHUB_ACCESS_TOKEN;
+      getServerEnv(context).GITHUB_TOKEN || process.env.GITHUB_TOKEN || process.env.VITE_GITHUB_ACCESS_TOKEN;
 
     let fileList;
 
@@ -225,13 +225,13 @@ export async function loader({ request, context }: { request: Request; context: 
     // Filter out .git files for both methods
     const filteredFiles = fileList.filter((file: any) => !file.path.startsWith('.git'));
 
-    return json(filteredFiles);
+    return Response.json(filteredFiles);
   } catch (error) {
     console.error('Error processing GitHub template:', error);
     console.error('Repository:', repo);
     console.error('Error details:', error instanceof Error ? error.message : String(error));
 
-    return json(
+    return Response.json(
       {
         error: 'Failed to fetch template files',
         details: error instanceof Error ? error.message : String(error),

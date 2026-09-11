@@ -11,7 +11,7 @@
 
 # Security-sensitive configurations - require maintainer review
 /.env* @stackblitz-labs/bolt-maintainers
-/wrangler.toml @stackblitz-labs/bolt-maintainers  
+/server/ @stackblitz-labs/bolt-maintainers
 /Dockerfile @stackblitz-labs/bolt-maintainers
 /docker-compose.yaml @stackblitz-labs/bolt-maintainers
 

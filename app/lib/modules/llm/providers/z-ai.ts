@@ -1,4 +1,5 @@
 import { BaseProvider } from '~/lib/modules/llm/base-provider';
+import type { ServerEnv } from '~/types/env';
 import type { IProviderSetting } from '~/types/model';
 import type { LanguageModelV1 } from 'ai';
 import type { ModelInfo } from '~/lib/modules/llm/types';
@@ -164,7 +165,7 @@ export default class ZaiProvider extends BaseProvider {
 
   getModelInstance(options: {
     model: string;
-    serverEnv: Env;
+    serverEnv: ServerEnv;
     apiKeys?: Record<string, string>;
     providerSettings?: Record<string, IProviderSetting>;
   }): LanguageModelV1 {

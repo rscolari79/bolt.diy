@@ -24,3 +24,13 @@ README.md
 logs
 dist-ssr
 .DS_Store
+
+# Nicht in den Build-Kontext — reduziert Kontextgrösse und Cache-Invalidierung
+docs/
+tests/
+*.spec.ts
+*.spec.tsx
+*.spec.mjs
+Dockerfile
+docker-compose.yaml
+.dockerignore

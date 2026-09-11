@@ -1,22 +1,17 @@
-import { json, type LoaderFunction, type LoaderFunctionArgs } from '@remix-run/cloudflare';
+import type { LoaderFunction, LoaderFunctionArgs } from '@remix-run/node';
+import { getServerEnv } from '~/lib/.server/env';
 
 /**
  * Diagnostic API for troubleshooting connection issues
  */
 
-interface AppContext {
-  env?: {
-    GITHUB_ACCESS_TOKEN?: string;
-    NETLIFY_TOKEN?: string;
-  };
-}
-
-export const loader: LoaderFunction = async ({ request, context }: LoaderFunctionArgs & { context: AppContext }) => {
+export const loader: LoaderFunction = async ({ request, context }: LoaderFunctionArgs) => {
   // Get environment variables
+  const env = getServerEnv(context);
   const envVars = {
-    hasGithubToken: Boolean(process.env.GITHUB_ACCESS_TOKEN || context.env?.GITHUB_ACCESS_TOKEN),
-    hasNetlifyToken: Boolean(process.env.NETLIFY_TOKEN || context.env?.NETLIFY_TOKEN),
-    nodeEnv: process.env.NODE_ENV,
+    hasGithubToken: Boolean(env.GITHUB_ACCESS_TOKEN),
+    hasNetlifyToken: Boolean(env.NETLIFY_TOKEN),
+    nodeEnv: env.NODE_ENV,
   };
 
   // Check cookies
@@ -117,7 +112,7 @@ export const loader: LoaderFunction = async ({ request, context }: LoaderFunctio
   };
 
   // Return diagnostics
-  return json(
+  return Response.json(
     {
       status: 'success',
       environment: envVars,

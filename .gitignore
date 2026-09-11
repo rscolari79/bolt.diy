@@ -41,8 +41,8 @@ site
 
 # commit file ignore
 app/commit.json
-changelogUI.md
 docs/instructions/Roadmap.md
 .cursorrules
-*.md
+# vormals "*.md" — das blockierte jede Dokumentation im Repo
+changelogUI.md
 .qodo

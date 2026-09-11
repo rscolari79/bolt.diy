@@ -52,7 +52,6 @@ Also [this pinned post in our community](https://thinktank.ottomator.ai/t/videos
 - **Code diff visualization** and version history
 - **Download projects as ZIP** or push directly to GitHub
 - **Docker support** for containerized development environments
-- **Electron app** for native desktop experience
 - **Theme customization** and accessibility features
 - **Help icon** in sidebar linking to comprehensive documentation
 
@@ -571,30 +570,17 @@ All templates are pre-configured with modern tooling, linting, and build process
 ### Development Scripts
 - `pnpm run dev`: Starts the development server with hot reloading
 - `pnpm run build`: Builds the project for production
-- `pnpm run start`: Runs the built application locally using Wrangler Pages
+- `pnpm run start`: Runs the built application locally with the Node server (`server/index.mjs`)
 - `pnpm run preview`: Builds and starts locally for production testing
 - `pnpm test`: Runs the test suite using Vitest
 - `pnpm run test:watch`: Runs tests in watch mode
 - `pnpm run lint`: Runs ESLint with auto-fix
 - `pnpm run typecheck`: Runs TypeScript type checking
-- `pnpm run typegen`: Generates TypeScript types using Wrangler
 
 ### Docker Scripts
-- `pnpm run dockerbuild`: Builds Docker image for development
-- `pnpm run dockerbuild:prod`: Builds Docker image for production
+- `pnpm run dockerbuild`: Builds the Docker image
 - `pnpm run dockerrun`: Runs the Docker container
-- `docker compose --profile development up`: Runs with Docker Compose (development)
-
-### Electron Scripts
-- `pnpm electron:build:mac`: Builds for macOS
-- `pnpm electron:build:win`: Builds for Windows
-- `pnpm electron:build:linux`: Builds for Linux
-- `pnpm electron:build:dist`: Builds for all platforms (Mac, Windows, Linux)
-- `pnpm electron:build:unpack`: Creates unpacked build for testing
-
-### Deployment Scripts
-- `pnpm run deploy`: Builds and deploys to Cloudflare Pages
-- `npm run dockerbuild`: Alternative Docker build command
+- `docker compose up`: Runs with Docker Compose
 
 ### Utility Scripts
 - `pnpm run clean`: Cleans build artifacts

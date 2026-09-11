@@ -1,5 +1,5 @@
-import type { LoaderFunction } from '@remix-run/cloudflare';
-import { json } from '@remix-run/cloudflare';
+import type { LoaderFunction } from '@remix-run/node';
+import { getServerEnv } from '~/lib/.server/env';
 import { LLMManager } from '~/lib/modules/llm/manager';
 import { LOCAL_PROVIDERS } from '~/lib/stores/settings';
 
@@ -19,7 +19,7 @@ interface ConfiguredProvidersResponse {
  */
 export const loader: LoaderFunction = async ({ context }) => {
   try {
-    const llmManager = LLMManager.getInstance(context?.cloudflare?.env as any);
+    const llmManager = LLMManager.getInstance(getServerEnv(context));
     const configuredProviders: ConfiguredProvider[] = [];
 
     // Check each local provider for environment configuration
@@ -37,7 +37,7 @@ export const loader: LoaderFunction = async ({ context }) => {
          */
         if (config.baseUrlKey) {
           const baseUrlEnvVar = config.baseUrlKey;
-          const cloudflareEnv = (context?.cloudflare?.env as Record<string, any>)?.[baseUrlEnvVar];
+          const cloudflareEnv = getServerEnv(context)[baseUrlEnvVar];
           const processEnv = process.env[baseUrlEnvVar];
           const managerEnv = llmManager.env[baseUrlEnvVar];
 
@@ -65,9 +65,7 @@ export const loader: LoaderFunction = async ({ context }) => {
         if (config.apiTokenKey && !isConfigured) {
           const apiTokenEnvVar = config.apiTokenKey;
           const envApiToken =
-            (context?.cloudflare?.env as Record<string, any>)?.[apiTokenEnvVar] ||
-            process.env[apiTokenEnvVar] ||
-            llmManager.env[apiTokenEnvVar];
+            getServerEnv(context)[apiTokenEnvVar] || process.env[apiTokenEnvVar] || llmManager.env[apiTokenEnvVar];
 
           // Only consider configured if API key is set and not a placeholder
           const isValidApiToken =
@@ -92,19 +90,19 @@ export const loader: LoaderFunction = async ({ context }) => {
       });
     }
 
-    return json<ConfiguredProvidersResponse>({
+    return Response.json({
       providers: configuredProviders,
-    });
+    } satisfies ConfiguredProvidersResponse);
   } catch (error) {
     console.error('Error detecting configured providers:', error);
 
     // Return default state on error
-    return json<ConfiguredProvidersResponse>({
+    return Response.json({
       providers: LOCAL_PROVIDERS.map((name) => ({
         name,
         isConfigured: false,
         configMethod: 'none' as const,
       })),
-    });
+    } satisfies ConfiguredProvidersResponse);
   }
 };

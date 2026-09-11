@@ -45,7 +45,6 @@ project, please check the [project management guide](./PROJECT.md) to get starte
 
 ### ✅ Completed Features
 - **19+ AI Provider Integrations** - OpenAI, Anthropic, Google, Groq, xAI, DeepSeek, Mistral, Cohere, Together, Perplexity, HuggingFace, Ollama, LM Studio, OpenRouter, Moonshot, Hyperbolic, GitHub Models, Amazon Bedrock, OpenAI-like
-- **Electron Desktop App** - Native desktop experience with full functionality
 - **Advanced Deployment Options** - Netlify, Vercel, and GitHub Pages deployment
 - **Supabase Integration** - Database management and query capabilities
 - **Data Visualization & Analysis** - Charts, graphs, and data analysis tools
@@ -78,7 +77,6 @@ project, please check the [project management guide](./PROJECT.md) to get starte
 - **Download projects as ZIP** for easy portability and sync to a folder on the host.
 - **Integration-ready Docker support** for a hassle-free setup.
 - **Deploy directly** to **Netlify**, **Vercel**, or **GitHub Pages**.
-- **Electron desktop app** for native desktop experience.
 - **Data visualization and analysis** with integrated charts and graphs.
 - **Git integration** with clone, import, and deployment capabilities.
 - **MCP (Model Context Protocol)** support for enhanced AI tool integration.
@@ -176,55 +174,30 @@ This option requires Docker and is great when you want an isolated environment o
 2. **Build an Image**
 
    ```bash
-   # Development image (bind-mounts your local source when run)
    pnpm run dockerbuild
-   # ≈ docker build -t bolt-ai:development -t bolt-ai:latest --target development .
-
-   # Production image (self-contained build artifacts)
-   pnpm run dockerbuild:prod
-   # ≈ docker build -t bolt-ai:production -t bolt-ai:latest --target bolt-ai-production .
+   # ≈ docker build -t bolt-ai:latest .
    ```
 
 3. **Run the Container**
 
    ```bash
-   # Development workflow with hot reload
-   docker compose --profile development up
+   docker compose up
 
-   # Production-style container using composed services
-   docker compose --profile production up
-
-   # One-off production container (exposes the app on port 5173)
+   # Or a one-off container (exposes the app on port 5173)
    docker run --rm -p 5173:5173 --env-file .env.local bolt-ai:latest
    ```
 
-   When the container starts it runs `pnpm run dockerstart`, which in turn executes `bindings.sh` to pass Cloudflare bindings through Wrangler. You can override this command in `docker-compose.yaml` if you need a different startup routine.
+   When the container starts it runs `node server/index.mjs`, an Express server that serves the
+   Remix build. Environment variables are read straight from the process environment — there
+   is no binding or Wrangler step involved.
 
-### Option 3: Desktop Application (Electron)
+   Set `BOLT_AUTH_USER` and `BOLT_AUTH_PASSWORD` to require HTTP Basic auth. Do that before you
+   expose the instance publicly with server-side API keys configured: bolt.diy has no user
+   management of its own, so anyone who knows the URL could otherwise spend your API credits.
+   `/api/health` stays reachable without credentials so platform healthchecks keep working.
 
-For users who prefer a native desktop experience, bolt.diy is also available as an Electron desktop application:
+   For running this on Coolify, see [docs/coolify.md](docs/coolify.md).
 
-1. **Download the Desktop App**:
-   - Visit the [latest release](https://github.com/stackblitz-labs/bolt.diy/releases/latest)
-   - Download the appropriate binary for your operating system
-   - For macOS: Extract and run the `.dmg` file
-   - For Windows: Run the `.exe` installer
-   - For Linux: Extract and run the AppImage or install the `.deb` package
-
-2. **Alternative**: Build from Source:
-   ```bash
-   # Install dependencies
-   pnpm install
-
-   # Build the Electron app
-   pnpm electron:build:dist  # For all platforms
-   # OR platform-specific:
-   pnpm electron:build:mac   # macOS
-   pnpm electron:build:win   # Windows
-   pnpm electron:build:linux # Linux
-   ```
-
-The desktop app provides the same full functionality as the web version with additional native features.
 
 ## Configuring API Keys and Providers
 
@@ -464,31 +437,17 @@ Remember to always commit your local changes or stash them before pulling update
 
 - **`pnpm run dev`**: Starts the development server.
 - **`pnpm run build`**: Builds the project.
-- **`pnpm run start`**: Runs the built application locally using Wrangler Pages.
+- **`pnpm run start`**: Runs the built application locally with the Node server (`server/index.mjs`).
 - **`pnpm run preview`**: Builds and runs the production build locally.
 - **`pnpm test`**: Runs the test suite using Vitest.
 - **`pnpm run typecheck`**: Runs TypeScript type checking.
-- **`pnpm run typegen`**: Generates TypeScript types using Wrangler.
-- **`pnpm run deploy`**: Deploys the project to Cloudflare Pages.
 - **`pnpm run lint`**: Runs ESLint to check for code issues.
 - **`pnpm run lint:fix`**: Automatically fixes linting issues.
 - **`pnpm run clean`**: Cleans build artifacts and cache.
 - **`pnpm run prepare`**: Sets up husky for git hooks.
 - **Docker Scripts**:
-  - **`pnpm run dockerbuild`**: Builds the Docker image for development.
-  - **`pnpm run dockerbuild:prod`**: Builds the Docker image for production.
+  - **`pnpm run dockerbuild`**: Builds the Docker image.
   - **`pnpm run dockerrun`**: Runs the Docker container.
-  - **`pnpm run dockerstart`**: Starts the Docker container with proper bindings.
-- **Electron Scripts**:
-  - **`pnpm electron:build:deps`**: Builds Electron main and preload scripts.
-  - **`pnpm electron:build:main`**: Builds the Electron main process.
-  - **`pnpm electron:build:preload`**: Builds the Electron preload script.
-  - **`pnpm electron:build:renderer`**: Builds the Electron renderer.
-  - **`pnpm electron:build:unpack`**: Creates an unpacked Electron build.
-  - **`pnpm electron:build:mac`**: Builds for macOS.
-  - **`pnpm electron:build:win`**: Builds for Windows.
-  - **`pnpm electron:build:linux`**: Builds for Linux.
-  - **`pnpm electron:build:dist`**: Builds for all platforms.
 
 ---
 
