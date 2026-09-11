@@ -1,4 +1,4 @@
-import { json } from '@remix-run/cloudflare';
+import { getServerEnv } from '~/lib/.server/env';
 import { getApiKeysFromCookie } from '~/lib/api/cookies';
 import { withSecurity } from '~/lib/security';
 
@@ -32,11 +32,11 @@ async function githubBranchesLoader({ request, context }: { request: Request; co
       githubToken = body.token;
 
       if (!owner || !repo) {
-        return json({ error: 'Owner and repo parameters are required' }, { status: 400 });
+        return Response.json({ error: 'Owner and repo parameters are required' }, { status: 400 });
       }
 
       if (!githubToken) {
-        return json({ error: 'GitHub token is required' }, { status: 400 });
+        return Response.json({ error: 'GitHub token is required' }, { status: 400 });
       }
     } else {
       // Handle GET request with params and cookie token (backwards compatibility)
@@ -45,7 +45,7 @@ async function githubBranchesLoader({ request, context }: { request: Request; co
       repo = url.searchParams.get('repo') || '';
 
       if (!owner || !repo) {
-        return json({ error: 'Owner and repo parameters are required' }, { status: 400 });
+        return Response.json({ error: 'Owner and repo parameters are required' }, { status: 400 });
       }
 
       // Get API keys from cookies (server-side only)
@@ -56,15 +56,15 @@ async function githubBranchesLoader({ request, context }: { request: Request; co
       githubToken =
         apiKeys.GITHUB_API_KEY ||
         apiKeys.VITE_GITHUB_ACCESS_TOKEN ||
-        context?.cloudflare?.env?.GITHUB_TOKEN ||
-        context?.cloudflare?.env?.VITE_GITHUB_ACCESS_TOKEN ||
+        getServerEnv(context).GITHUB_TOKEN ||
+        getServerEnv(context).VITE_GITHUB_ACCESS_TOKEN ||
         process.env.GITHUB_TOKEN ||
         process.env.VITE_GITHUB_ACCESS_TOKEN ||
         '';
     }
 
     if (!githubToken) {
-      return json({ error: 'GitHub token not found' }, { status: 401 });
+      return Response.json({ error: 'GitHub token not found' }, { status: 401 });
     }
 
     // First, get repository info to know the default branch
@@ -78,11 +78,11 @@ async function githubBranchesLoader({ request, context }: { request: Request; co
 
     if (!repoResponse.ok) {
       if (repoResponse.status === 404) {
-        return json({ error: 'Repository not found' }, { status: 404 });
+        return Response.json({ error: 'Repository not found' }, { status: 404 });
       }
 
       if (repoResponse.status === 401) {
-        return json({ error: 'Invalid GitHub token' }, { status: 401 });
+        return Response.json({ error: 'Invalid GitHub token' }, { status: 401 });
       }
 
       throw new Error(`GitHub API error: ${repoResponse.status}`);
@@ -127,7 +127,7 @@ async function githubBranchesLoader({ request, context }: { request: Request; co
       return a.name.localeCompare(b.name);
     });
 
-    return json({
+    return Response.json({
       branches: transformedBranches,
       defaultBranch,
       total: transformedBranches.length,
@@ -137,7 +137,7 @@ async function githubBranchesLoader({ request, context }: { request: Request; co
 
     if (error instanceof Error) {
       if (error.message.includes('fetch')) {
-        return json(
+        return Response.json(
           {
             error: 'Failed to connect to GitHub. Please check your network connection.',
           },
@@ -145,7 +145,7 @@ async function githubBranchesLoader({ request, context }: { request: Request; co
         );
       }
 
-      return json(
+      return Response.json(
         {
           error: `Failed to fetch branches: ${error.message}`,
         },
@@ -153,7 +153,7 @@ async function githubBranchesLoader({ request, context }: { request: Request; co
       );
     }
 
-    return json(
+    return Response.json(
       {
         error: 'An unexpected error occurred while fetching branches',
       },

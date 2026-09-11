@@ -1,4 +1,4 @@
-import { json } from '@remix-run/cloudflare';
+import { getServerEnv } from '~/lib/.server/env';
 import { getApiKeysFromCookie } from '~/lib/api/cookies';
 import { withSecurity } from '~/lib/security';
 
@@ -11,11 +11,11 @@ async function supabaseUserLoader({ request, context }: { request: Request; cont
     // Try to get Supabase token from various sources
     const supabaseToken =
       apiKeys.VITE_SUPABASE_ACCESS_TOKEN ||
-      context?.cloudflare?.env?.VITE_SUPABASE_ACCESS_TOKEN ||
+      getServerEnv(context).VITE_SUPABASE_ACCESS_TOKEN ||
       process.env.VITE_SUPABASE_ACCESS_TOKEN;
 
     if (!supabaseToken) {
-      return json({ error: 'Supabase token not found' }, { status: 401 });
+      return Response.json({ error: 'Supabase token not found' }, { status: 401 });
     }
 
     // Make server-side request to Supabase API
@@ -28,7 +28,7 @@ async function supabaseUserLoader({ request, context }: { request: Request; cont
 
     if (!response.ok) {
       if (response.status === 401) {
-        return json({ error: 'Invalid Supabase token' }, { status: 401 });
+        return Response.json({ error: 'Invalid Supabase token' }, { status: 401 });
       }
 
       throw new Error(`Supabase API error: ${response.status}`);
@@ -53,7 +53,7 @@ async function supabaseUserLoader({ request, context }: { request: Request; cont
           }
         : null;
 
-    return json({
+    return Response.json({
       user,
       projects: projects.map((project) => ({
         id: project.id,
@@ -66,7 +66,7 @@ async function supabaseUserLoader({ request, context }: { request: Request; cont
     });
   } catch (error) {
     console.error('Error fetching Supabase user:', error);
-    return json(
+    return Response.json(
       {
         error: 'Failed to fetch Supabase user information',
         details: error instanceof Error ? error.message : String(error),
@@ -93,11 +93,11 @@ async function supabaseUserAction({ request, context }: { request: Request; cont
     // Try to get Supabase token from various sources
     const supabaseToken =
       apiKeys.VITE_SUPABASE_ACCESS_TOKEN ||
-      context?.cloudflare?.env?.VITE_SUPABASE_ACCESS_TOKEN ||
+      getServerEnv(context).VITE_SUPABASE_ACCESS_TOKEN ||
       process.env.VITE_SUPABASE_ACCESS_TOKEN;
 
     if (!supabaseToken) {
-      return json({ error: 'Supabase token not found' }, { status: 401 });
+      return Response.json({ error: 'Supabase token not found' }, { status: 401 });
     }
 
     if (action === 'get_projects') {
@@ -132,7 +132,7 @@ async function supabaseUserAction({ request, context }: { request: Request; cont
             }
           : null;
 
-      return json({
+      return Response.json({
         user,
         stats: {
           projects: projects.map((project) => ({
@@ -152,7 +152,7 @@ async function supabaseUserAction({ request, context }: { request: Request; cont
       const projectId = formData.get('projectId');
 
       if (!projectId) {
-        return json({ error: 'Project ID is required' }, { status: 400 });
+        return Response.json({ error: 'Project ID is required' }, { status: 400 });
       }
 
       // Fetch project API keys
@@ -172,7 +172,7 @@ async function supabaseUserAction({ request, context }: { request: Request; cont
         api_key: string;
       }>;
 
-      return json({
+      return Response.json({
         apiKeys: apiKeys.map((key) => ({
           name: key.name,
           api_key: key.api_key,
@@ -180,10 +180,10 @@ async function supabaseUserAction({ request, context }: { request: Request; cont
       });
     }
 
-    return json({ error: 'Invalid action' }, { status: 400 });
+    return Response.json({ error: 'Invalid action' }, { status: 400 });
   } catch (error) {
     console.error('Error in Supabase user action:', error);
-    return json(
+    return Response.json(
       {
         error: 'Failed to process Supabase request',
         details: error instanceof Error ? error.message : String(error),

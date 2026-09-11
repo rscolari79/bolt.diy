@@ -1,4 +1,3 @@
-import { json } from '@remix-run/cloudflare';
 import { execSync } from 'child_process';
 import { existsSync } from 'fs';
 
@@ -6,7 +5,7 @@ export async function loader() {
   try {
     // Check if we're in a git repository
     if (!existsSync('.git')) {
-      return json({
+      return Response.json({
         branch: 'unknown',
         commit: 'unknown',
         isDirty: false,
@@ -47,7 +46,7 @@ export async function loader() {
       // Could not get commit info
     }
 
-    return json({
+    return Response.json({
       branch,
       commit,
       isDirty,
@@ -56,7 +55,7 @@ export async function loader() {
     });
   } catch (error) {
     console.error('Error fetching git info:', error);
-    return json(
+    return Response.json(
       {
         branch: 'error',
         commit: 'error',

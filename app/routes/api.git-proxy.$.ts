@@ -1,5 +1,4 @@
-import { json } from '@remix-run/cloudflare';
-import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/cloudflare';
+import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
 
 // Allowed headers to forward to the target server
 const ALLOW_HEADERS = [
@@ -54,7 +53,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 async function handleProxyRequest(request: Request, path: string | undefined) {
   try {
     if (!path) {
-      return json({ error: 'Invalid proxy URL format' }, { status: 400 });
+      return Response.json({ error: 'Invalid proxy URL format' }, { status: 400 });
     }
 
     // Handle CORS preflight request
@@ -75,7 +74,7 @@ async function handleProxyRequest(request: Request, path: string | undefined) {
     const parts = path.match(/([^\/]+)\/?(.*)/);
 
     if (!parts) {
-      return json({ error: 'Invalid path format' }, { status: 400 });
+      return Response.json({ error: 'Invalid path format' }, { status: 400 });
     }
 
     const domain = parts[1];
@@ -166,7 +165,7 @@ async function handleProxyRequest(request: Request, path: string | undefined) {
     });
   } catch (error) {
     console.error('Proxy error:', error);
-    return json(
+    return Response.json(
       {
         error: 'Proxy error',
         message: error instanceof Error ? error.message : 'Unknown error',

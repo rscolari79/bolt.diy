@@ -1,4 +1,3 @@
-import { json } from '@remix-run/cloudflare';
 import { getServerEnv } from '~/lib/.server/env';
 import { LLMManager } from '~/lib/modules/llm/manager';
 import type { ModelInfo } from '~/lib/modules/llm/types';
@@ -83,9 +82,9 @@ export async function loader({
     });
   }
 
-  return json<ModelsResponse>({
+  return Response.json({
     modelList,
     providers,
     defaultProvider,
-  });
+  } satisfies ModelsResponse);
 }

@@ -1,4 +1,4 @@
-import { json } from '@remix-run/cloudflare';
+import { getServerEnv } from '~/lib/.server/env';
 import { getApiKeysFromCookie } from '~/lib/api/cookies';
 import { withSecurity } from '~/lib/security';
 
@@ -11,11 +11,11 @@ async function netlifyUserLoader({ request, context }: { request: Request; conte
     // Try to get Netlify token from various sources
     const netlifyToken =
       apiKeys.VITE_NETLIFY_ACCESS_TOKEN ||
-      context?.cloudflare?.env?.VITE_NETLIFY_ACCESS_TOKEN ||
+      getServerEnv(context).VITE_NETLIFY_ACCESS_TOKEN ||
       process.env.VITE_NETLIFY_ACCESS_TOKEN;
 
     if (!netlifyToken) {
-      return json({ error: 'Netlify token not found' }, { status: 401 });
+      return Response.json({ error: 'Netlify token not found' }, { status: 401 });
     }
 
     // Make server-side request to Netlify API
@@ -28,7 +28,7 @@ async function netlifyUserLoader({ request, context }: { request: Request; conte
 
     if (!response.ok) {
       if (response.status === 401) {
-        return json({ error: 'Invalid Netlify token' }, { status: 401 });
+        return Response.json({ error: 'Invalid Netlify token' }, { status: 401 });
       }
 
       throw new Error(`Netlify API error: ${response.status}`);
@@ -42,7 +42,7 @@ async function netlifyUserLoader({ request, context }: { request: Request; conte
       full_name: string | null;
     };
 
-    return json({
+    return Response.json({
       id: userData.id,
       name: userData.name,
       email: userData.email,
@@ -51,7 +51,7 @@ async function netlifyUserLoader({ request, context }: { request: Request; conte
     });
   } catch (error) {
     console.error('Error fetching Netlify user:', error);
-    return json(
+    return Response.json(
       {
         error: 'Failed to fetch Netlify user information',
         details: error instanceof Error ? error.message : String(error),
@@ -78,11 +78,11 @@ async function netlifyUserAction({ request, context }: { request: Request; conte
     // Try to get Netlify token from various sources
     const netlifyToken =
       apiKeys.VITE_NETLIFY_ACCESS_TOKEN ||
-      context?.cloudflare?.env?.VITE_NETLIFY_ACCESS_TOKEN ||
+      getServerEnv(context).VITE_NETLIFY_ACCESS_TOKEN ||
       process.env.VITE_NETLIFY_ACCESS_TOKEN;
 
     if (!netlifyToken) {
-      return json({ error: 'Netlify token not found' }, { status: 401 });
+      return Response.json({ error: 'Netlify token not found' }, { status: 401 });
     }
 
     if (action === 'get_sites') {
@@ -109,7 +109,7 @@ async function netlifyUserAction({ request, context }: { request: Request; conte
         updated_at: string;
       }>;
 
-      return json({
+      return Response.json({
         sites: sites.map((site) => ({
           id: site.id,
           name: site.name,
@@ -123,10 +123,10 @@ async function netlifyUserAction({ request, context }: { request: Request; conte
       });
     }
 
-    return json({ error: 'Invalid action' }, { status: 400 });
+    return Response.json({ error: 'Invalid action' }, { status: 400 });
   } catch (error) {
     console.error('Error in Netlify user action:', error);
-    return json(
+    return Response.json(
       {
         error: 'Failed to process Netlify request',
         details: error instanceof Error ? error.message : String(error),

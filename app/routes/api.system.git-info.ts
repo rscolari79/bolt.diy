@@ -1,4 +1,5 @@
-import { json, type LoaderFunction, type LoaderFunctionArgs } from '@remix-run/cloudflare';
+import type { LoaderFunction, LoaderFunctionArgs } from '@remix-run/node';
+import { getServerEnv } from '~/lib/.server/env';
 
 interface GitInfo {
   local: {
@@ -21,13 +22,6 @@ interface GitInfo {
   };
   isForked?: boolean;
   timestamp?: string;
-}
-
-// Define context type
-interface AppContext {
-  env?: {
-    GITHUB_ACCESS_TOKEN?: string;
-  };
 }
 
 interface GitHubRepo {
@@ -61,7 +55,7 @@ declare const __GIT_REPO_NAME: string;
  * declare const __GIT_REPO_URL: string;
  */
 
-export const loader: LoaderFunction = async ({ request, context }: LoaderFunctionArgs & { context: AppContext }) => {
+export const loader: LoaderFunction = async ({ request }: LoaderFunctionArgs) => {
   console.log('Git info API called with URL:', request.url);
 
   // Handle CORS preflight requests
@@ -82,7 +76,7 @@ export const loader: LoaderFunction = async ({ request, context }: LoaderFunctio
 
   if (action === 'getUser' || action === 'getRepos' || action === 'getOrgs' || action === 'getActivity') {
     // Use server-side token instead of client-side token
-    const serverGithubToken = process.env.GITHUB_ACCESS_TOKEN || context.env?.GITHUB_ACCESS_TOKEN;
+    const serverGithubToken = getServerEnv().GITHUB_ACCESS_TOKEN;
     const cookieToken = request.headers
       .get('Cookie')
       ?.split(';')
@@ -102,7 +96,7 @@ export const loader: LoaderFunction = async ({ request, context }: LoaderFunctio
 
     if (!token) {
       console.error('No GitHub token available');
-      return json(
+      return Response.json(
         { error: 'No GitHub token available' },
         {
           status: 401,
@@ -130,7 +124,7 @@ export const loader: LoaderFunction = async ({ request, context }: LoaderFunctio
 
         const userData = await response.json();
 
-        return json(
+        return Response.json(
           { user: userData },
           {
             headers: {
@@ -205,7 +199,7 @@ export const loader: LoaderFunction = async ({ request, context }: LoaderFunctio
            */
         }
 
-        return json(
+        return Response.json(
           {
             repos,
             stats: {
@@ -239,7 +233,7 @@ export const loader: LoaderFunction = async ({ request, context }: LoaderFunctio
 
         const orgs = await response.json();
 
-        return json(
+        return Response.json(
           { organizations: orgs },
           {
             headers: {
@@ -259,7 +253,7 @@ export const loader: LoaderFunction = async ({ request, context }: LoaderFunctio
 
         if (!username) {
           console.error('GitHub username not found in cookies');
-          return json(
+          return Response.json(
             { error: 'GitHub username not found in cookies' },
             {
               status: 400,
@@ -285,7 +279,7 @@ export const loader: LoaderFunction = async ({ request, context }: LoaderFunctio
 
         const events = await response.json();
 
-        return json(
+        return Response.json(
           { recentActivity: events },
           {
             headers: {
@@ -297,7 +291,7 @@ export const loader: LoaderFunction = async ({ request, context }: LoaderFunctio
       }
     } catch (error) {
       console.error('GitHub API error:', error);
-      return json(
+      return Response.json(
         { error: error instanceof Error ? error.message : 'Unknown error' },
         {
           status: 500,
@@ -323,7 +317,7 @@ export const loader: LoaderFunction = async ({ request, context }: LoaderFunctio
     timestamp: new Date().toISOString(),
   };
 
-  return json(gitInfo, {
+  return Response.json(gitInfo, {
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
